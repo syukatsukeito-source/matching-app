@@ -1,0 +1,86 @@
+scalar AWSDateTime
+scalar AWSEmail
+
+# 列挙型: ユーザーステータス
+enum UserStatus {
+  PENDING_PROFILE
+  ACTIVE
+  BLOCKED
+}
+
+# 列挙型: 性別
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+# 列挙型: リアクションタイプ
+enum ReactionType {
+  LIKE
+  PASS
+}
+
+# 型: 認証済みユーザー情報
+type Viewer {
+  userId: ID!
+  email: AWSEmail
+  status: UserStatus!
+  profileCompleted: Boolean!
+  createdAt: AWSDateTime!
+}
+
+type MyProfile {
+  userId: ID!
+  email: AWSEmail
+  status: UserStatus!
+  profileCompleted: Boolean!
+  displayName: String
+  age: Int
+  gender: Gender
+  bio: String
+  photoUrl: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type UserProfile {
+  userId: ID!
+  displayName: String!
+  age: Int
+  gender: Gender
+  bio: String
+  photoUrl: String
+}
+
+type ReactionResult {
+  success: Boolean!
+  matched: Boolean!
+  targetUserId: ID!
+}
+
+input UpdateProfileInput {
+  displayName: String
+  age: Int
+  gender: Gender
+  bio: String
+}
+
+# クエリ（読み取り）
+type Query {
+  me: Viewer!
+  myProfile: MyProfile
+  listPotentialMatches(limit: Int): [UserProfile!]!
+}
+
+# ミューテーション（書き込み）
+type Mutation {
+  ensureMe: Viewer!
+  updateMyProfile(input: UpdateProfileInput!): MyProfile!
+  reactToUser(targetUserId: ID!, action: ReactionType!): ReactionResult!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@matching-app/infra",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "synth": "npx cdk synth"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.186.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

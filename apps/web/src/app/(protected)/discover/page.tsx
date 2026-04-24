@@ -8,26 +8,30 @@ import * as cognito from '@/lib/cognito';
 import { useAuth } from '@/providers/auth-provider';
 
 export default function DiscoverPage() {
-  const { user, signOut } = useAuth();
-  const [viewer, setViewer] = useState<appsync.Viewer | null>(null);
+  const { signOut } = useAuth();
+  const [users, setUsers] = useState<appsync.UserProfile[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // 初期ロード時にAPIからユーザーリストを取得
   useEffect(() => {
     let cancelled = false;
 
-    const loadMe = async () => {
+    const loadUsers = async () => {
       try {
         setError('');
         setIsLoading(true);
         const idToken = await cognito.getCurrentIdToken();
-        const me = await appsync.me(idToken);
+        const potentialMatches = await appsync.listPotentialMatches(20, idToken);
         if (!cancelled) {
-          setViewer(me);
+          setUsers(potentialMatches);
         }
-      } catch (nextError) {
+      } catch (err) {
         if (!cancelled) {
-          setError(nextError instanceof Error ? nextError.message : 'プロフィール取得に失敗しました。');
+          setError(err instanceof Error ? err.message : 'ユーザーの取得に失敗しました');
         }
       } finally {
         if (!cancelled) {
@@ -36,35 +40,294 @@ export default function DiscoverPage() {
       }
     };
 
-    loadMe();
+    loadUsers();
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const currentUser = users[currentIndex];
+
+  const handleSwipe = async (action: 'LIKE' | 'PASS') => {
+    if (isAnimating || !currentUser) return;
+
+    setIsAnimating(true);
+    setSwipeDirection(action === 'LIKE' ? 'right' : 'left');
+
+    // アニメーション後に次のユーザーへ
+    setTimeout(async () => {
+      try {
+        const idToken = await cognito.getCurrentIdToken();
+        const result = await appsync.reactToUser(currentUser.userId, action, idToken);
+        
+        console.log(`${action}: ${currentUser.displayName}`, result);
+        
+        if (result.matched) {
+          alert(`🎉 ${currentUser.displayName}さんとマッチしました！`);
+        }
+        
+        setCurrentIndex((prev) => prev + 1);
+        setSwipeDirection(null);
+        setIsAnimating(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'エラーが発生しました');
+        setIsAnimating(false);
+        setSwipeDirection(null);
+      }
+    }, 300);
+  };
+
+  const handleKeyPress = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      handleSwipe('PASS');
+    } else if (e.key === 'ArrowRight') {
+      handleSwipe('LIKE');
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentIndex, isAnimating]);
+
+  // ローディング中
+  if (isLoading) {
+    return (
+      <main className="page-shell" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <section style={{ width: 'min(100%, 480px)', padding: '20px', textAlign: 'center' }}>
+          <div className="panel" style={{ padding: 40 }}>
+            <h2 style={{ margin: 0, marginBottom: 16 }}>読み込み中...</h2>
+            <p style={{ color: '#475569' }}>マッチング候補を取得しています</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // エラー表示
+  if (error && users.length === 0) {
+    return (
+      <main className="page-shell" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <section style={{ width: 'min(100%, 480px)', padding: '20px' }}>
+          <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
+            <h2 style={{ margin: 0, marginBottom: 16, color: '#dc2626' }}>エラー</h2>
+            <p style={{ color: '#475569', marginBottom: 24 }}>{error}</p>
+            <Button onClick={() => window.location.reload()}>再読み込み</Button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (currentIndex >= users.length) {
+    return (
+      <main className="page-shell">
+        <section className="panel" style={{ width: 'min(100%, 480px)', textAlign: 'center' }}>
+          <div className="stack">
+            <h1 style={{ margin: 0, fontSize: 48 }}>🎉</h1>
+            <h2 style={{ margin: 0 }}>全員チェックしました！</h2>
+            <p style={{ color: '#475569' }}>新しいユーザーをまた後でチェックしてください。</p>
+            <div className="auth-links" style={{ marginTop: 24 }}>
+              <Link href="/matches">マッチ一覧へ</Link>
+              <Link href="/profile/edit">プロフィール編集へ</Link>
+            </div>
+            <Button onClick={() => setCurrentIndex(0)} variant="secondary">
+              もう一度見る
+            </Button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className="page-shell">
-      <section className="panel" style={{ width: 'min(100%, 720px)' }}>
+    <main className="page-shell" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+      <section style={{ width: 'min(100%, 480px)', padding: '20px' }}>
         <div className="stack">
-          <span style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#475569' }}>
-            Protected route
-          </span>
-          <h1 style={{ margin: 0 }}>Discover</h1>
-          <p style={{ margin: 0, color: '#475569' }}>
-            認証済みユーザーのみ入れる確認ページです。`ensureMe` 実行後に `me` で DynamoDB の状態を表示しています。
+          {/* ヘッダー */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h1 style={{ margin: 0, color: 'white', fontSize: 28 }}>Discover</h1>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Link href="/matches" style={{ color: 'white', fontSize: 14 }}>マッチ</Link>
+              <Link href="/profile/edit" style={{ color: 'white', fontSize: 14 }}>設定</Link>
+            </div>
+          </div>
+
+          {error && <p style={{ color: '#fecaca', background: '#7f1d1d', padding: 12, borderRadius: 8 }}>{error}</p>}
+
+          {/* カードスタック */}
+          <div style={{ position: 'relative', height: '600px' }}>
+            {currentUser && (
+              <div
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  transition: swipeDirection ? 'all 0.3s ease-out' : 'none',
+                  transform: swipeDirection === 'left' 
+                    ? 'translateX(-150%) rotate(-30deg)' 
+                    : swipeDirection === 'right'
+                    ? 'translateX(150%) rotate(30deg)'
+                    : 'translateX(0) rotate(0)',
+                  opacity: swipeDirection ? 0 : 1,
+                }}
+              >
+                <div
+                  className="panel"
+                  style={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {/* プロフィール写真 */}
+                  <div
+                    style={{
+                      flex: 1,
+                      backgroundImage: `url(${currentUser.photoUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      position: 'relative',
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        padding: '40px 20px 20px',
+                        color: 'white',
+                      }}
+                    >
+                      <h2 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>
+                        {currentUser.displayName}, {currentUser.age}
+                      </h2>
+                    </div>
+                  </div>
+
+                  {/* プロフィール情報 */}
+                  <div style={{ padding: 20 }}>
+                    <p style={{ margin: 0, color: '#475569', lineHeight: 1.6 }}>
+                      {currentUser.bio}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 次のカード（プレビュー） */}
+            {users[currentIndex + 1] && (
+              <div
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  transform: 'scale(0.95)',
+                  filter: 'brightness(0.7)',
+                  zIndex: -1,
+                }}
+              >
+                <div className="panel" style={{ height: '100%', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      backgroundImage: `url(${users[currentIndex + 1].photoUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* アクションボタン */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
+            <button
+              onClick={() => handleSwipe('PASS')}
+              disabled={isAnimating}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                border: '3px solid white',
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                fontSize: 32,
+                cursor: isAnimating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                if (!isAnimating) {
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+            >
+              ✕
+            </button>
+
+            <button
+              onClick={() => handleSwipe('LIKE')}
+              disabled={isAnimating}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                border: '3px solid white',
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                fontSize: 32,
+                cursor: isAnimating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                if (!isAnimating) {
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+            >
+              ♡
+            </button>
+          </div>
+
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 12 }}>
+            キーボードの←→でも操作できます
           </p>
-          {isLoading ? <p style={{ margin: 0, color: '#475569' }}>読み込み中...</p> : null}
-          {error ? <p style={{ margin: 0, color: '#dc2626' }}>{error}</p> : null}
-          <div className="panel" style={{ background: '#f8fafc' }}>
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify({ sessionUser: user, me: viewer }, null, 2)}</pre>
-          </div>
-          <div className="auth-links">
-            <Link href="/profile/edit">プロフィール編集へ</Link>
-            <Link href="/matches">マッチ一覧へ</Link>
-            <Link href="/settings/safety">安全設定へ</Link>
-          </div>
-          <div>
-            <Button onClick={() => signOut()}>ログアウト</Button>
+
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <button
+              onClick={() => signOut()}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 14,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              ログアウト
+            </button>
           </div>
         </div>
       </section>

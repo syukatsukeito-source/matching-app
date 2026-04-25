@@ -11,6 +11,11 @@ export const appConfig = {
     region: process.env.NEXT_PUBLIC_APPSYNC_REGION ?? 'ap-northeast-1',
     authType: process.env.NEXT_PUBLIC_APPSYNC_AUTH_TYPE ?? 'AMAZON_COGNITO_USER_POOLS',
   },
+  supabase: {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+  },
 } as const;
 
 export const isMockAuthEnabled = appConfig.authMode === 'mock';
+export const isSupabaseEnabled = appConfig.authMode === 'supabase';

@@ -22,7 +22,7 @@ export default function SignUpPage() {
 
     try {
       await signUp({ email, password });
-      router.push(`/auth/confirm?email=${encodeURIComponent(email)}`);
+      router.push('/profile/edit');
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : '登録に失敗しました。');
     } finally {
@@ -41,7 +41,7 @@ export default function SignUpPage() {
           <Input label="メールアドレス" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           <Input label="パスワード" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           {error ? <p style={{ margin: 0, color: '#dc2626' }}>{error}</p> : null}
-          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? '送信中...' : '確認コードを送る'}</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? '登録中...' : '登録する'}</Button>
         </form>
         <div className="auth-links">
           <Link href="/auth/login">ログインへ</Link>

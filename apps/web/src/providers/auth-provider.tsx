@@ -2,15 +2,16 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { AuthUser, ConfirmSignUpInput, SignInInput, SignUpInput } from '@/types/auth';
-import { isMockAuthEnabled } from '@/lib/config';
+import { isMockAuthEnabled, isSupabaseEnabled } from '@/lib/config';
 import * as cognito from '@/lib/cognito';
 import * as appsync from '@/lib/appsync';
+import * as supabaseAuth from '@/lib/auth';
 
 type AuthContextValue = {
   isLoading: boolean;
   user: AuthUser | null;
   isAuthenticated: boolean;
-  signUp: (input: SignUpInput) => Promise<{ needsConfirmation: boolean; email: string }>;
+  signUp: (input: SignUpInput) => Promise<AuthUser>;
   confirmSignUp: (input: ConfirmSignUpInput) => Promise<AuthUser>;
   signIn: (input: SignInInput) => Promise<AuthUser>;
   signOut: () => Promise<void>;
@@ -58,12 +59,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
 
-  // 起動時: Cognito の既存セッションを復元
+  // 起動時: セッションを復元
   useEffect(() => {
     if (isMockAuthEnabled) {
       setIsLoading(false);
       return;
     }
+    
+    if (isSupabaseEnabled) {
+      supabaseAuth.getCurrentUser()
+        .then((user) => setUser(user))
+        .catch(() => setUser(null))
+        .finally(() => setIsLoading(false));
+      return;
+    }
+
     cognito.getCurrentSession()
       .then(async (session) => {
         const idToken = cognito.getIdToken(session);
@@ -82,12 +92,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       async signUp(input: SignUpInput) {
         if (isMockAuthEnabled) {
-          writeJson(PENDING_SIGNUP_KEY, input);
-          return { needsConfirmation: true, email: input.email };
+          const nextUser = buildMockUser(input.email);
+          setUser(nextUser);
+          return nextUser;
+        }
+        if (isSupabaseEnabled) {
+          const user = await supabaseAuth.signUp(input);
+          setUser(user);
+          return user;
         }
         await cognito.signUp(input.email, input.password);
         writeJson(PENDING_SIGNUP_KEY, { email: input.email });
-        return { needsConfirmation: true, email: input.email };
+        const nextUser = buildMockUser(input.email);
+        setUser(nextUser);
+        return nextUser;
       },
 
       async confirmSignUp(input: ConfirmSignUpInput) {
@@ -99,6 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clearKey(PENDING_SIGNUP_KEY);
           setUser(nextUser);
           return nextUser;
+        }
+        if (isSupabaseEnabled) {
+          const user = await supabaseAuth.confirmSignUp(input);
+          setUser(user);
+          return user;
         }
         await cognito.confirmSignUp(input.email, input.code);
         clearKey(PENDING_SIGNUP_KEY);
@@ -112,6 +135,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(nextUser);
           return nextUser;
         }
+        if (isSupabaseEnabled) {
+          const user = await supabaseAuth.signIn(input);
+          setUser(user);
+          return user;
+        }
         const session = await cognito.signIn(input.email, input.password);
         const idToken = cognito.getIdToken(session);
         const viewer = await appsync.ensureMe(idToken);
@@ -122,6 +150,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       async signOut() {
         if (isMockAuthEnabled) {
+          setUser(null);
+          return;
+        }
+        if (isSupabaseEnabled) {
+          await supabaseAuth.signOut();
           setUser(null);
           return;
         }

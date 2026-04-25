@@ -4,12 +4,23 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import * as appsync from '@/lib/appsync';
+import * as supabaseApi from '@/lib/supabase-api';
 import * as cognito from '@/lib/cognito';
 import { useAuth } from '@/providers/auth-provider';
+import { isSupabaseEnabled } from '@/lib/config';
+
+type UserProfile = {
+  userId: string;
+  displayName: string;
+  age?: number;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  bio?: string;
+  photoUrl?: string;
+};
 
 export default function DiscoverPage() {
   const { signOut } = useAuth();
-  const [users, setUsers] = useState<appsync.UserProfile[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
@@ -24,8 +35,16 @@ export default function DiscoverPage() {
       try {
         setError('');
         setIsLoading(true);
-        const idToken = await cognito.getCurrentIdToken();
-        const potentialMatches = await appsync.listPotentialMatches(20, idToken);
+        
+        let potentialMatches: UserProfile[];
+        
+        if (isSupabaseEnabled) {
+          potentialMatches = await supabaseApi.listPotentialMatches(20);
+        } else {
+          const idToken = await cognito.getCurrentIdToken();
+          potentialMatches = await appsync.listPotentialMatches(20, idToken);
+        }
+        
         if (!cancelled) {
           setUsers(potentialMatches);
         }
@@ -57,8 +76,14 @@ export default function DiscoverPage() {
     // アニメーション後に次のユーザーへ
     setTimeout(async () => {
       try {
-        const idToken = await cognito.getCurrentIdToken();
-        const result = await appsync.reactToUser(currentUser.userId, action, idToken);
+        let result;
+        
+        if (isSupabaseEnabled) {
+          result = await supabaseApi.reactToUser(currentUser.userId, action);
+        } else {
+          const idToken = await cognito.getCurrentIdToken();
+          result = await appsync.reactToUser(currentUser.userId, action, idToken);
+        }
         
         console.log(`${action}: ${currentUser.displayName}`, result);
         

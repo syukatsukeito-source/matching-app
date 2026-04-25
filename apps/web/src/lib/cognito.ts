@@ -6,11 +6,12 @@ import {
   CognitoUserSession,
   ISignUpResult,
 } from 'amazon-cognito-identity-js';
-import { appConfig } from './config';
+import { appConfig, isSupabaseEnabled } from './config';
 
+// Supabaseモードの場合は適切な形式のダミー値を使う
 const userPool = new CognitoUserPool({
-  UserPoolId: appConfig.cognito.userPoolId,
-  ClientId: appConfig.cognito.userPoolClientId,
+  UserPoolId: isSupabaseEnabled ? 'ap-northeast-1_dummypool' : (appConfig.cognito.userPoolId || 'ap-northeast-1_dummypool'),
+  ClientId: isSupabaseEnabled ? '1234567890abcdefghijklmnop' : (appConfig.cognito.userPoolClientId || '1234567890abcdefghijklmnop'),
 });
 
 // ユーザー登録

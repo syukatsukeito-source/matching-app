@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import * as appsync from '@/lib/appsync';
+import * as supabaseApi from '@/lib/supabase-api';
 import * as cognito from '@/lib/cognito';
+import { isSupabaseEnabled } from '@/lib/config';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -23,15 +25,20 @@ export default function ProfileEditPage() {
     setIsSubmitting(true);
 
     try {
-      const idToken = await cognito.getCurrentIdToken();
-      const input: appsync.UpdateProfileInput = {
+      const input = {
         displayName: displayName.trim() || undefined,
         age: age ? parseInt(age, 10) : undefined,
         gender: gender || undefined,
         bio: bio.trim() || undefined,
       };
 
-      await appsync.updateMyProfile(input, idToken);
+      if (isSupabaseEnabled) {
+        await supabaseApi.updateMyProfile(input);
+      } else {
+        const idToken = await cognito.getCurrentIdToken();
+        await appsync.updateMyProfile(input, idToken);
+      }
+
       router.push('/discover');
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : 'プロフィール更新に失敗しました。');

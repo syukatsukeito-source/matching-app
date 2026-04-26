@@ -1,6 +1,7 @@
 export const appConfig = {
   appName: process.env.NEXT_PUBLIC_APP_NAME ?? 'matching-app',
   authMode: process.env.NEXT_PUBLIC_AUTH_MODE ?? 'mock',
+  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api',
   cognito: {
     userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID ?? '',
     userPoolClientId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID ?? '',

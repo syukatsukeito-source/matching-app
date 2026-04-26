@@ -15,3 +15,8 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+  # Next.js 15 App Router + SSR対応
+  buildSettings:
+    nextVersion: '15'
+    # WEB_COMPUTE モードで実行（SSR/middleware対応）
+    framework: nextjs_v2

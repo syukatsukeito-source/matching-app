@@ -40,6 +40,10 @@ type MyProfile {
   gender: Gender
   bio: String
   photoUrl: String
+  latitude: Float
+  longitude: Float
+  maxDistanceKm: Int
+  locationUpdatedAt: AWSDateTime
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
 }
@@ -51,6 +55,7 @@ type UserProfile {
   gender: Gender
   bio: String
   photoUrl: String
+  distanceKm: Float
 }
 
 type ReactionResult {
@@ -66,6 +71,22 @@ input UpdateProfileInput {
   bio: String
 }
 
+input UpdateLocationInput {
+  latitude: Float!
+  longitude: Float!
+  maxDistanceKm: Int
+}
+
+input GetUploadUrlInput {
+  fileName: String!
+  contentType: String!
+}
+
+type UploadUrlResponse {
+  uploadUrl: String!
+  photoUrl: String!
+}
+
 # クエリ（読み取り）
 type Query {
   me: Viewer!
@@ -77,7 +98,9 @@ type Query {
 type Mutation {
   ensureMe: Viewer!
   updateMyProfile(input: UpdateProfileInput!): MyProfile!
+  updateLocation(input: UpdateLocationInput!): MyProfile!
   reactToUser(targetUserId: ID!, action: ReactionType!): ReactionResult!
+  getUploadUrl(input: GetUploadUrlInput!): UploadUrlResponse!
 }
 
 schema {

@@ -22,7 +22,7 @@ export default function SignUpPage() {
 
     try {
       await signUp({ email, password });
-      router.push('/profile/edit');
+      router.push(`/auth/confirm?email=${encodeURIComponent(email)}`);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : '登録に失敗しました。');
     } finally {

@@ -76,6 +76,36 @@ export default function SettingsPage() {
             </div>
           </Link>
 
+          {/* 位置情報設定 */}
+          <Link href="/settings/location">
+            <div
+              style={{
+                padding: '20px',
+                borderBottom: '1px solid #e5e7eb',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 24 }}>📍</span>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#1f2937' }}>位置情報設定</div>
+                  <div style={{ fontSize: 14, color: '#6b7280' }}>検索範囲を0〜100kmで設定</div>
+                </div>
+              </div>
+              <span style={{ color: '#9ca3af' }}>→</span>
+            </div>
+          </Link>
+
           {/* 安全設定 */}
           <Link href="/settings/safety">
             <div

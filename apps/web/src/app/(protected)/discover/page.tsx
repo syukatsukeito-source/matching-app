@@ -339,7 +339,22 @@ export default function DiscoverPage() {
             キーボードの←→でも操作できます
           </p>
 
-          <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <div style={{ textAlign: 'center', marginTop: 12, display: 'flex', justifyContent: 'center', gap: 16 }}>
+            <Link href="/settings">
+              <button
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: 8,
+                  color: 'white',
+                  fontSize: 14,
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                }}
+              >
+                ⚙️ 設定
+              </button>
+            </Link>
             <button
               onClick={() => signOut()}
               style={{

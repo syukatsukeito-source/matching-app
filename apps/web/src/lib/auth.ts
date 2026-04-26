@@ -11,7 +11,10 @@ export async function signUp(input: SignUpInput): Promise<AuthUser> {
   });
 
   if (error) throw new Error(error.message);
-  if (!data.user || !data.session) throw new Error('ユーザー作成に失敗しました');
+  if (!data.user) throw new Error('ユーザー作成に失敗しました');
+
+  // メール確認が無効の場合、セッションが存在する
+  console.log('Signup result:', { user: data.user, session: data.session });
 
   // usersテーブルにレコードを作成
   await ensureUserRecord(data.user.id, data.user.email || '');
@@ -123,7 +126,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 }
 
 async function ensureUserRecord(userId: string, email: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .upsert({
       id: userId,
@@ -132,10 +135,16 @@ async function ensureUserRecord(userId: string, email: string): Promise<void> {
       profile_completed: false,
     }, {
       onConflict: 'id',
-      ignoreDuplicates: true,
+      ignoreDuplicates: false,
     });
 
-  if (error && error.code !== '23505') { // 23505 = unique violation (already exists)
+  if (error) {
     console.error('Failed to ensure user record:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    // 既存レコードのエラー以外はスロー
+    if (error.code !== '23505') {
+      throw new Error(`ユーザーレコードの作成に失敗: ${error.message || JSON.stringify(error)}`);
+    }
   }
+  console.log('User record ensured:', { userId, data });
 }

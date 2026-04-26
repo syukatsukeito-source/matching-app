@@ -101,6 +101,24 @@ const ME_QUERY = /* GraphQL */ `
   }
 `;
 
+const MY_PROFILE_QUERY = /* GraphQL */ `
+  query MyProfile {
+    myProfile {
+      userId
+      email
+      status
+      profileCompleted
+      displayName
+      age
+      gender
+      bio
+      photoUrl
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 const UPDATE_PROFILE_MUTATION = /* GraphQL */ `
   mutation UpdateMyProfile($input: UpdateProfileInput!) {
     updateMyProfile(input: $input) {
@@ -151,6 +169,12 @@ export async function ensureMe(idToken: string): Promise<Viewer> {
 export async function me(idToken: string): Promise<Viewer> {
   const data = await graphqlRequest<{ me: Viewer }>(ME_QUERY, {}, idToken);
   return data.me;
+}
+
+//詳細プロフィール取得
+export async function myProfile(idToken: string): Promise<MyProfile> {
+  const data = await graphqlRequest<{ myProfile: MyProfile }>(MY_PROFILE_QUERY, {}, idToken);
+  return data.myProfile;
 }
 
 //プロフィール更新

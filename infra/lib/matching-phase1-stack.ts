@@ -77,6 +77,19 @@ export class MatchingPhase1Stack extends Stack {
 
     usersTable.grantReadData(getMeFunction); // 読み取り権限のみ
 
+    // 詳細プロフィール取得Lambda: Query.myProfile 用
+    const myProfileFunction = new lambda.Function(this, 'MyProfileFunction', {
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      architecture: lambda.Architecture.ARM_64,
+      handler: 'bootstrap',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/dist/my-profile')),
+      environment: {
+        USERS_TABLE_NAME: usersTable.tableName,
+      },
+    });
+
+    usersTable.grantReadData(myProfileFunction); // 読み取り権限のみ
+
     // プロフィール更新Lambda
     const updateProfileFunction = new lambda.Function(this, 'UpdateProfileFunction', {
       runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -114,6 +127,13 @@ export class MatchingPhase1Stack extends Stack {
     getMeDataSource.createResolver('MeResolver', {
       typeName: 'Query',
       fieldName: 'me',
+    });
+
+    // Query.myProfile → 詳細プロフィール取得Lambda
+    const myProfileDataSource = api.addLambdaDataSource('MyProfileDataSource', myProfileFunction);
+    myProfileDataSource.createResolver('MyProfileResolver', {
+      typeName: 'Query',
+      fieldName: 'myProfile',
     });
 
     // Mutation.updateMyProfile → プロフィール更新Lambda

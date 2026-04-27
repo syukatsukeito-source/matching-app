@@ -6,6 +6,7 @@ import { FormEvent, Suspense, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/providers/auth-provider';
+import { isSupabaseEnabled } from '@/lib/config';
 
 function LoginContent() {
   const router = useRouter();
@@ -47,7 +48,7 @@ function LoginContent() {
         </form>
         <div className="auth-links">
           <Link href="/auth/signup">新規登録へ</Link>
-          <Link href="/auth/forgot-password">パスワード再設定</Link>
+          {!isSupabaseEnabled ? <Link href="/auth/forgot-password">パスワード再設定</Link> : null}
           <Link href="/">トップへ</Link>
         </div>
       </section>

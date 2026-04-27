@@ -55,9 +55,15 @@ function toAuthUser(viewer: appsync.Viewer): AuthUser {
   };
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<AuthUser | null>(null);
+export function AuthProvider({
+  children,
+  initialUser = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: AuthUser | null;
+}) {
+  const [isLoading, setIsLoading] = useState(!isSupabaseEnabled && !isMockAuthEnabled);
+  const [user, setUser] = useState<AuthUser | null>(initialUser);
 
   // 起動時: セッションを復元
   useEffect(() => {
@@ -67,10 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     if (isSupabaseEnabled) {
-      supabaseAuth.getCurrentUser()
-        .then((user) => setUser(user))
-        .catch(() => setUser(null))
-        .finally(() => setIsLoading(false));
+      setUser(initialUser);
+      setIsLoading(false);
       return;
     }
 
@@ -82,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [initialUser]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -97,9 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return nextUser;
         }
         if (isSupabaseEnabled) {
-          const user = await supabaseAuth.signUp(input);
-          setUser(user);
-          return user;
+          const result = await supabaseAuth.signUp(input);
+          if (!result.requiresEmailConfirmation) {
+            setUser(result.user);
+          }
+          return result.user;
         }
         await cognito.signUp(input.email, input.password);
         writeJson(PENDING_SIGNUP_KEY, { email: input.email });

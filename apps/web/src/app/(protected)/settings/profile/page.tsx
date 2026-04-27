@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as appsync from '@/lib/appsync';
+import * as supabaseApi from '@/lib/supabase-api';
 import * as cognito from '@/lib/cognito';
+import { isSupabaseEnabled } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -37,24 +39,39 @@ export default function ProfileEditPage() {
         setIsLoading(true);
         setError('');
         
-        const idToken = await cognito.getCurrentIdToken();
-        const data = await appsync.myProfile(idToken);
-        
-        setProfile({
-          displayName: data.displayName || '',
-          age: data.age?.toString() || '',
-          gender: data.gender || '',
-          bio: data.bio || '',
-        });
-        
-        // プロフィールが未設定なら自動的に編集モードに
-        if (!data.displayName) {
-          setIsEditing(true);
+        if (isSupabaseEnabled) {
+          // Supabaseモード
+          const data = await supabaseApi.getMyProfile();
+          
+          setProfile({
+            displayName: data.displayName || '',
+            age: data.age?.toString() || '',
+            gender: data.gender || '',
+            bio: data.bio || '',
+          });
+          
+          if (!data.displayName) {
+            setIsEditing(true);
+          }
+        } else {
+          // AWSモード
+          const idToken = await cognito.getCurrentIdToken();
+          const data = await appsync.myProfile(idToken);
+          
+          setProfile({
+            displayName: data.displayName || '',
+            age: data.age?.toString() || '',
+            gender: data.gender || '',
+            bio: data.bio || '',
+          });
+          
+          if (!data.displayName) {
+            setIsEditing(true);
+          }
         }
       } catch (err) {
         console.error('Failed to load profile:', err);
         setError('プロフィールの読み込みに失敗しました');
-        // プロフィールが存在しない場合は編集モードに
         setIsEditing(true);
       } finally {
         setIsLoading(false);
@@ -82,8 +99,7 @@ export default function ProfileEditPage() {
         return;
       }
 
-      const idToken = await cognito.getCurrentIdToken();
-      const input: appsync.UpdateProfileInput = {
+      const input: supabaseApi.UpdateProfileInput = {
         displayName: profile.displayName,
       };
 
@@ -97,7 +113,14 @@ export default function ProfileEditPage() {
         input.bio = profile.bio;
       }
 
-      await appsync.updateMyProfile(input, idToken);
+      if (isSupabaseEnabled) {
+        // Supabaseモード
+        await supabaseApi.updateMyProfile(input);
+      } else {
+        // AWSモード
+        const idToken = await cognito.getCurrentIdToken();
+        await appsync.updateMyProfile(input, idToken);
+      }
       
       setSuccessMessage('プロフィールを保存しました');
       setIsEditing(false);
@@ -172,6 +195,7 @@ export default function ProfileEditPage() {
               名前 <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <Input
+              label="名前"
               type="text"
               value={profile.displayName}
               onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
@@ -187,6 +211,7 @@ export default function ProfileEditPage() {
               年齢
             </label>
             <Input
+              label="年齢"
               type="number"
               value={profile.age}
               onChange={(e) => setProfile({ ...profile, age: e.target.value })}
@@ -261,7 +286,7 @@ export default function ProfileEditPage() {
               <>
                 <Button
                   onClick={() => setIsEditing(false)}
-                  variant="outline"
+                  variant="secondary"
                   style={{ flex: 1 }}
                   disabled={isSaving}
                 >

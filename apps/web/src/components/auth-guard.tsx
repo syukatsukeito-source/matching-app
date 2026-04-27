@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import * as appsync from '@/lib/appsync';
+import * as supabaseApi from '@/lib/supabase-api';
 import * as cognito from '@/lib/cognito';
 import { isSupabaseEnabled } from '@/lib/config';
 
@@ -26,20 +27,25 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // Supabaseモードではプロフィールチェックをスキップ
         if (isSupabaseEnabled) {
-          setIsCheckingProfile(false);
-          return;
-        }
+          // Supabaseモード: プロフィール完了状態を確認
+          const profile = await supabaseApi.getMyProfile();
+          
+          if (!profile.profileCompleted) {
+            // プロフィール未完了の場合は設定画面へリダイレクト
+            router.replace('/settings/profile');
+            return;
+          }
+        } else {
+          // AWSモード: プロフィール完了状態を確認
+          const idToken = await cognito.getCurrentIdToken();
+          const viewer = await appsync.me(idToken);
 
-        // プロフィール完了状態を確認
-        const idToken = await cognito.getCurrentIdToken();
-        const viewer = await appsync.me(idToken);
-
-        if (!viewer.profileCompleted) {
-          // プロフィール未完了の場合は設定画面へリダイレクト
-          router.replace('/settings/profile');
-          return;
+          if (!viewer.profileCompleted) {
+            // プロフィール未完了の場合は設定画面へリダイレクト
+            router.replace('/settings/profile');
+            return;
+          }
         }
 
         setIsCheckingProfile(false);

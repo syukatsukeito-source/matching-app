@@ -1,23 +1,19 @@
 'use client';
 
-import Link from 'next/link';
-
 export default function MatchesPage() {
   return (
     <main className="page-shell">
       <section className="panel" style={{ width: 'min(100%, 720px)' }}>
         <div className="stack">
-          <span style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#475569' }}>
-            Protected route
-          </span>
-          <h1 style={{ margin: 0 }}>マッチ一覧（準備中）</h1>
-          <p style={{ margin: 0, color: '#475569' }}>
-            Phase 6 で `myMatches` をつないで一覧表示するページです。
-          </p>
-          <div className="auth-links">
-            <Link href="/discover">Discover</Link>
-            <Link href="/profile/edit">Profile Edit</Link>
-            <Link href="/settings/safety">Safety</Link>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ margin: 0, fontSize: 48 }}>💕</h1>
+            <h2 style={{ margin: 0, marginTop: 16 }}>いいね一覧</h2>
+            <p style={{ margin: 0, marginTop: 8, color: '#475569' }}>
+              あなたにいいねを送った人、マッチした人が表示されます。
+            </p>
+            <p style={{ margin: 0, marginTop: 16, color: '#94a3b8', fontSize: 14 }}>
+              ※ Phase 6 で実装予定の機能です
+            </p>
           </div>
         </div>
       </section>

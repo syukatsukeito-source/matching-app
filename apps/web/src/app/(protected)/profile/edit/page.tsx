@@ -1,7 +1,6 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -131,12 +130,6 @@ export default function ProfileEditPage() {
             {isSubmitting ? '保存中...' : 'プロフィールを保存'}
           </Button>
         </form>
-
-        <div className="auth-links">
-          <Link href="/discover">Discover</Link>
-          <Link href="/matches">Matches</Link>
-          <Link href="/settings/safety">Safety</Link>
-        </div>
       </section>
     </main>
   );

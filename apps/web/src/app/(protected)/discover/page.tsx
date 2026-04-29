@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import * as appsync from '@/lib/appsync';
 import * as supabaseApi from '@/lib/supabase-api';
@@ -152,11 +151,7 @@ export default function DiscoverPage() {
             <h1 style={{ margin: 0, fontSize: 48 }}>🎉</h1>
             <h2 style={{ margin: 0 }}>全員チェックしました！</h2>
             <p style={{ color: '#475569' }}>新しいユーザーをまた後でチェックしてください。</p>
-            <div className="auth-links" style={{ marginTop: 24 }}>
-              <Link href="/matches">マッチ一覧へ</Link>
-              <Link href="/profile/edit">プロフィール編集へ</Link>
-            </div>
-            <Button onClick={() => setCurrentIndex(0)} variant="secondary">
+            <Button onClick={() => setCurrentIndex(0)} variant="secondary" style={{ marginTop: 24 }}>
               もう一度見る
             </Button>
           </div>
@@ -170,12 +165,8 @@ export default function DiscoverPage() {
       <section style={{ width: 'min(100%, 480px)', padding: '20px' }}>
         <div className="stack">
           {/* ヘッダー */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
             <h1 style={{ margin: 0, color: 'white', fontSize: 28 }}>Discover</h1>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <Link href="/matches" style={{ color: 'white', fontSize: 14 }}>マッチ</Link>
-              <Link href="/profile/edit" style={{ color: 'white', fontSize: 14 }}>設定</Link>
-            </div>
           </div>
 
           {error && <p style={{ color: '#fecaca', background: '#7f1d1d', padding: 12, borderRadius: 8 }}>{error}</p>}
@@ -339,22 +330,7 @@ export default function DiscoverPage() {
             キーボードの←→でも操作できます
           </p>
 
-          <div style={{ textAlign: 'center', marginTop: 12, display: 'flex', justifyContent: 'center', gap: 16 }}>
-            <Link href="/settings">
-              <button
-                style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: 8,
-                  color: 'white',
-                  fontSize: 14,
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                }}
-              >
-                ⚙️ 設定
-              </button>
-            </Link>
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
             <button
               onClick={() => signOut()}
               style={{
